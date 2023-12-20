@@ -1,87 +1,76 @@
 require 'sqlite3'
 
 class User
-  attr_accessor :id, :firstname, :lastname, :age, :password, :email
+    attr_accessor :id, :firstname, :lastname, :age, :email, :password
 
-  def initialize(id:, firstname:, lastname:, age:, password:, email:)
+  def initialize(id, firstname, lastname, age, email, password)
     @id = id
     @firstname = firstname
     @lastname = lastname
     @age = age
-    @password = password
     @email = email
+    @password = password
   end
 
+
   def self.create(user_info)
-    user_info[:id] ||= nil
-        user = new(**user_info)
-    db = SQLite3::Database.new'db.sql'
-    db.execute <<~SQL
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
-        firstname TEXT,
-        lastname TEXT,
-        age INTEGER,
-        password TEXT,
-        email TEXT
-       );
-     SQL
+    db = SQLite3::Database.new 'db.sql'
+    
+    db.execute <<-SQL
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY,
+          firstname STRING,
+          lastname STRING,
+          age INTEGER,
+          email STRING,
+          password STRING
+        );
+      SQL
 
-    db.execute"INSERT INTO users (firstname, lastname, age, password, email) VALUES (?, ?, ?, ?, ?)",
-                 [user.firstname, user.lastname, user.age, user.password, user.email]   
-
-    user_id = db.last_insert_row_id
-    user
+      db.execute 'INSERT INTO users (firstname, lastname, age, email, password) VALUES (?, ?, ?, ?, ?)', user_info[:firstname], user_info[:lastname], user_info[:age], user_info[:email], user_info[:password]
+      user_id = db.last_insert_row_id
+      user = db.execute('SELECT * FROM users WHERE id = ?', user_id).first
+     
+      db.close
+     
+      return nil if user.nil?
+     
+      User.new(user[0], user[1], user[2], user[3], user[4], user[5])
   end
 
   def self.find(user_id)
-    db = SQLite3::Database.new'db.sql'
-    db.execute "INSERT INTO users(firstname, lastname, age, email, password) VALUES (?, ?, ?, ?, ?)", user_id[:firstname], user_id[:lastname], user_id[:age], user_id[:email], user_id[:password]
-    user = User.new(user_id[:firstname], user_id[:lastname], user_id[:age], user_id[:email],  )
-    user.id = db.last_insert_row_id
+    db = SQLite3::Database.new 'db.sql'
+    user = db.execute('SELECT * FROM users WHERE id = ?', user_id.to_i) # Assurez-vous que user_id est un entier
+    
     db.close
-    return user
+  
+    return nil if user.empty?
+  
+    user_info = User.new(user[0][0], user[0][1], user[0][2], user[0][3], user[0][4], user[0][5]) # Assurez-vous que les indices correspondent à la structure de votre table
+    user_info.id = user[0][0] # Assurez-vous que le champ id est à l'index 0 dans votre structure de table
+  
+    return user_info
   end
+  
   
 
   def self.all
-    db = SQLite3::Database.new'db.sql'
-    users = {}
-    db.execute("SELECT * FROM users").each do |user|
-      users[user[0]] = {
-        firstname: user[1],
-        lastname: user[2],
-        age: user[3],
-        password: user[4],
-        email: user[5]
-      }
-    end
-    users
+    db = SQLite3::Database.new 'db.sql'
+    users = db.execute'SELECT * FROM users'
+    db.close
+
+    return users
   end
 
   def self.update(user_id, attribute, value)
-    db = SQLite3::Database.new'db.sql'
+    db = SQLite3::Database.new 'db.sql'
     db.execute"UPDATE users SET #{attribute} = ? WHERE id = ?", value, user_id
-    User.find(user_id)
+    db.close
   end
 
   def self.destroy(user_id)
-    db = SQLite3::Database.new'db.sql'
-    user_delete = db.execute"DELETE FROM users WHERE id = ?", user_id
-    user_delete
-  end
-
-
-  private
-
-  def set_attributes(user)
-    @firstname = user[1]
-    @lastname = user[2]
-    @age = user[3]
-    @password = user[4]
-    @email = user[5]
+    db = SQLite3::Database.new 'db.sql'
+    db.execute('DELETE FROM users WHERE id = ?', user_id)
+    db.close
   end
 end
-
-
-
