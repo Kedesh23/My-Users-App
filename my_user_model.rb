@@ -40,14 +40,14 @@ class User
 
   def self.find(user_id)
     db = SQLite3::Database.new 'db.sql'
-    user = db.execute('SELECT * FROM users WHERE id = ?', user_id.to_i) # Assurez-vous que user_id est un entier
+    user = db.execute('SELECT * FROM users WHERE id = ?', user_id.to_i) 
     
     db.close
   
     return nil if user.empty?
   
-    user_info = User.new(user[0][0], user[0][1], user[0][2], user[0][3], user[0][4], user[0][5]) # Assurez-vous que les indices correspondent à la structure de votre table
-    user_info.id = user[0][0] # Assurez-vous que le champ id est à l'index 0 dans votre structure de table
+    user_info = User.new(user[0][0], user[0][1], user[0][2], user[0][3], user[0][4], user[0][5])
+    user_info.id = user[0][0] 
   
     return user_info
   end
@@ -72,5 +72,13 @@ class User
     db = SQLite3::Database.new 'db.sql'
     db.execute('DELETE FROM users WHERE id = ?', user_id)
     db.close
+  end
+
+  def self.authentification(password, email)
+    db = SQLite3::Database.new 'db.sql'
+    user = db.execute("SELECT * FROM users WHERE password = ? AND email = ?", password, email)
+    db.close
+    return user
+      
   end
 end
